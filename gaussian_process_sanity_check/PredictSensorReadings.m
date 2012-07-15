@@ -1,0 +1,162 @@
+% Simple Gaussian Process Regression for Sanity Check 
+% Robot Locations are Inputs, Sensor Readings are Targets
+function PredictSensorReadings()
+
+close all;
+
+figure; 
+axis equal;
+hold on;
+
+H = 10; % Height of the map
+W = 15; % Width of the map
+
+% plot the map
+xMap = [0 W W 0 0];
+yMap = [0 0 H H 0];
+plot(xMap, yMap, 'k-');
+xlabel('x');
+ylabel('y');
+
+% Generate Poses on the map
+x = W.*rand(1,100);
+y = H.*rand(1,100);
+Poses = [x; y; ones(1,size(x,2))];
+
+% Remove any idential data points
+Poses = simple1D_RemoveSimilarPoints(Poses');
+Poses = Poses';
+
+plot(Poses(1,:), Poses(2,:), 'b.');
+
+% Generate Ranges using from the location of the robot
+% and the dimensions of the map
+Ranges = simSensor(Poses, H, W);
+
+Ranges = Ranges';
+
+% Obtain parameters for Gaussian Process Prediction
+gpSigmaNoise     = 0; % input('Please enter a value for gp_sigma_noise        : ');
+gpLengthScale    = 3; % input('Please enter a value for max_gp_length_scale   : ');
+gpSigmaF         = 1; % input('Please enter a value for step_gp_sigma_f       : ');
+gpHyperparams = [gpLengthScale, gpSigmaF, gpSigmaNoise];
+
+% Create vectors to store results
+testOuputMean1 = -1*ones(1, size(Ranges,1));
+testOuputMean2 = -1*ones(1, size(Ranges,1));
+testOuputMean3 = -1*ones(1, size(Ranges,1));
+testOuputMean4 = -1*ones(1, size(Ranges,1));
+
+%Run loop to perform Guassian process Prediction at all data points in
+%training set
+for i=1:size(Poses,2)
+	
+	% Pick test input out of all training Data
+	testInput = Poses(:,i);
+	
+	% Create the Design Matrix from the rest of the data
+	designMatrix = Poses;
+	designMatrix(:,i) = [];
+
+	% Create target vectors
+	targets1 = Ranges(:,1);
+	targets2 = Ranges(:,2);
+	targets3 = Ranges(:,3);
+	targets4 = Ranges(:,4);
+	
+	targets1(i,:) = [];
+	targets2(i,:) = [];
+	targets3(i,:) = [];
+	targets4(i,:) = [];	
+
+	size(Ranges)
+	size(targets1)
+	% Perform Gaussian Process Prediction to predict z1
+	[testOuputMean1(1,i), testOutputVariance1(1,i), failCode] = simple1D_GPPredictor(designMatrix, ...
+																			       targets1, ...
+																				   gpHyperparams, ...
+																				   testInput);
+	% Plot z1
+    impact = [testInput(1,1)+testOuputMean1(1,i); testInput(2,1)];		
+	if (i==1)
+		hplot1 = plot([testInput(1,1), impact(1,1)], [testInput(2,1), impact(2,1)], 'ro-');
+		hTest = plot(testInput(1,1), testInput(2,1), 'r.');
+	else
+		set(hplot1, 'XData', [testInput(1,1), impact(1,1)], ...
+                                   'YData', [testInput(2,1), impact(2,1)]);
+	    set(hTest, 'XData', testInput(1,1), 'YData', testInput(2,1)); 
+	end
+							   
+		
+	% Perform Gaussian Process Prediction to predict z2
+	[testOuputMean2(1,i), testOutputVariance2(1,i), failCode] = simple1D_GPPredictor(designMatrix, ...
+																			       targets2, ...
+																				   gpHyperparams, ...
+																				   testInput);
+	% Plot z2
+    impact = [testInput(1,1); testInput(2,1)+testOuputMean2(1,i)];	
+	if (i==1)
+		hplot2 = plot([testInput(1,1), impact(1,1)], [testInput(2,1), impact(2,1)], 'ro-');
+	else
+		set(hplot2, 'XData', [testInput(1,1), impact(1,1)], ...
+                                   'YData', [testInput(2,1), impact(2,1)]);
+	end
+							   
+
+	% Perform Gaussian Process Prediction to predict z3
+	[testOuputMean3(1,i), testOutputVariance3(1,i), failCode] = simple1D_GPPredictor(designMatrix, ...
+																			       targets3, ...
+																				   gpHyperparams, ...
+																				   testInput);
+	% Plot z3																			   
+    impact = [testInput(1,1)-testOuputMean3(1,i); testInput(2,1)];	
+	if (i==1)
+		hplot3 = plot([testInput(1,1), impact(1,1)], [testInput(2,1), impact(2,1)], 'ro-');
+	else
+		set(hplot3, 'XData', [testInput(1,1), impact(1,1)], ...
+                                   'YData', [testInput(2,1), impact(2,1)]);
+	end
+							   
+			
+	% Perform Gaussian Process Prediction to predict z4
+	[testOuputMean4(1,i), testOutputVariance4(1,i), failCode] = simple1D_GPPredictor(designMatrix, ...
+																			       targets4, ...
+																				   gpHyperparams, ...
+																				   testInput);
+	% Plot z4																			   
+    impact = [testInput(1,1); testInput(2,1)-testOuputMean4(1,i)];	
+	if (i==1)
+		hplot4 = plot([testInput(1,1), impact(1,1)], [testInput(2,1), impact(2,1)], 'ro-');																			   
+	else
+		set(hplot4, 'XData', [testInput(1,1), impact(1,1)], ...
+                                   'YData', [testInput(2,1), impact(2,1)]);
+	end
+	
+	legend('map', 'robot locations', 'range');
+	display('Please Press Any key to move on to the next point');
+	
+
+	pause;
+	
+end
+
+
+
+end
+
+% Simple sim sensor that generates range readings from map with no
+% obstacles
+function z = simSensor(pose, mapHeight, mapWidth)
+
+W = mapWidth;
+H = mapHeight;
+
+T = [ -1  0  W;
+	   0 -1  H;
+	   1  0  0;
+	   0  1  0];
+
+z = T*pose;
+	
+
+end

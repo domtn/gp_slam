@@ -70,7 +70,7 @@ function [predictive_mean, predictive_variance, failcode] = dependentGPPredict(X
     % [k_star_star, PD_status] = computeCovMatrix(x_star, x_star, hyperparams);
     % predictive_variance = k_star_star - (v')*v;
 
-	predictive_variance = 0;
+    predictive_variance = 0;
 end
 
 %% Function to compute the covariance matrix of 2 vectors X1 and X2

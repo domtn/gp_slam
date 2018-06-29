@@ -33,42 +33,42 @@
 %    of K(X,X))
 function [predictive_mean, predictive_variance, failcode] = dependentGPPredict(X, y, hyperparams, x_star)
 
-	hp_v = hyperparams(1,:);
-	hp_w = hyperparams(2,:);
-	hp_A = hyperparams(3,:);
-	hp_B = hyperparams(4,:);
-	hp_sigma = hyperparams(5,:);
-	hp_mu = hyperparams(6,:);
+    hp_v = hyperparams(1,:);
+    hp_w = hyperparams(2,:);
+    hp_A = hyperparams(3,:);
+    hp_B = hyperparams(4,:);
+    hp_sigma = hyperparams(5,:);
+    hp_mu = hyperparams(6,:);
 
     failcode = 0;
-    
-	% Calculate covariance matrix
+
+    % Calculate covariance matrix
     K = computeCovMatrix(X,X, hyperparams);
 
-	% Use Cholesky for efficient inverse
-	L = chol(K,'lower'); 
-    
-	% Compute k(x_star, X)
+    % Use Cholesky for efficient inverse
+    L = chol(K,'lower'); 
+
+    % Compute k(x_star, X)
     kStar = computeCovMatrix(x_star, X, hyperparams);
-		
-	yDependent = [y(:,1); y(:,2); y(:,3); y(:,4)];
-	
-	
-	% Computing Predictive Mean
+
+    yDependent = [y(:,1); y(:,2); y(:,3); y(:,4)];
+
+
+    % Computing Predictive Mean
     alpha = (L')\(L\yDependent);   
     predictive_mean(1,1) = kStar(1,:)*alpha;
     alpha = (L')\(L\yDependent);   
     predictive_mean(2,1) = kStar(2,:)*alpha;
-	alpha = (L')\(L\yDependent);   
-	predictive_mean(3,1) = kStar(3,:)*alpha;
-	alpha = (L')\(L\yDependent);   
-	predictive_mean(4,1) = kStar(4,:)*alpha;
+    alpha = (L')\(L\yDependent);   
+    predictive_mean(3,1) = kStar(3,:)*alpha;
+    alpha = (L')\(L\yDependent);   
+    predictive_mean(4,1) = kStar(4,:)*alpha;
 	
 	
     % Computing Predictive Variance
-%     v = L\k_star;
-%     [k_star_star, PD_status] = computeCovMatrix(x_star, x_star, hyperparams);
-%     predictive_variance = k_star_star - (v')*v;
+    % v = L\k_star;
+    % [k_star_star, PD_status] = computeCovMatrix(x_star, x_star, hyperparams);
+    % predictive_variance = k_star_star - (v')*v;
 
 	predictive_variance = 0;
 end
@@ -210,8 +210,6 @@ function Ksub = computeSubCovarianceMatrix(X1, X2, hyperparams, subblock_i, subb
 			end
 		end		
 	end
-
-
 end
 
 

@@ -9,8 +9,8 @@ occGridFile = [occGridFilePath, occGridFileName];
 
 id = fopen(occGridFile);
 for i=1:8
-	readin = fgetl(id);
-	para(i) = str2num(readin(16:length(readin)));        
+    readin = fgetl(id);
+    para(i) = str2num(readin(16:length(readin)));        
 end
 
 xMin = para(1); % Bottom Left corner of the map
@@ -36,14 +36,14 @@ trainingData = load(trainingDataFile);
 
 
 TrainingPoses = trainingData(2:size(trainingData,1), ...
-	             2:4);
-			 
+                             2:4);
+                
 % Training input			 
 TrainingPoses = TrainingPoses';
 
 % Training observations
 TrainingObservations = trainingData(2:size(trainingData,1), ...
-								    5:size(trainingData,2));
+                                    5:size(trainingData,2));
 observationAngles = trainingData(1, 5:size(trainingData,2))';
 observationAngles = observationAngles.*pi/180.0;
 
@@ -53,12 +53,12 @@ predictedVariance = zeros(size(TrainingObservations,2), 1);
 
 
 xBeams = [];
-yBeams = [];		
+yBeams = [];
 x_impact = [];
-y_impact = [];		
+y_impact = [];
 
 figure;
-hold on; 
+hold on;
 axis equal;
 
 axis([xMin-1 xMax+1 yMin-1 yMax+1]);
@@ -71,86 +71,86 @@ hp_A = [0.1, 0.1, 0.1, 0.1];
 hp_B = [0.1, 0.1, 0.1, 0.1];
 hp_sigma = [0.0, 0.0, 0.0, 0.0];
 hp_mu = [0.2, 0.2, 1.57, 1.0];
-	
-	
+
+
 gp_hyperparams = [hp_v; hp_w; hp_A; hp_B; hp_sigma; hp_mu];
 
 % Plot the training inputs (poses where groundtruth measurements were
 % taken
 for training_id = 1:size(TrainingPoses,2)
 
-	xPose = TrainingPoses(1,training_id);
-	yPose = TrainingPoses(2,training_id);
-	thetaPose = TrainingPoses(3,training_id);
+    xPose = TrainingPoses(1,training_id);
+    yPose = TrainingPoses(2,training_id);
+    thetaPose = TrainingPoses(3,training_id);
 
-	[x_heading, y_heading] = FrameSensorToInertial(xPose, ...
-												   yPose, ...
-												   thetaPose, 0.0, 2.0, 1);        
-	plot([xPose, x_heading], [yPose, y_heading], 'b-');        
-	plot(xPose, yPose, 'bo');
+    [x_heading, y_heading] = FrameSensorToInertial(xPose, ...
+                                                    yPose, ...
+                                                    thetaPose, 0.0, 2.0, 1);        
+    plot([xPose, x_heading], [yPose, y_heading], 'b-');        
+    plot(xPose, yPose, 'bo');
 
 end
 
 pause;
-	
-	% Run a loop to perform Gaussian process prediction to find predicted
-	% measurements at each particle pose (test input)
-	
+
+    % Run a loop to perform Gaussian process prediction to find predicted
+    % measurements at each particle pose (test input)
+
 count = 1;
 
 for i=1:size(TrainingPoses,2)	
 
-	xPose = TrainingPoses(1,i);
-	yPose = TrainingPoses(2,i);
-	thetaPose = TrainingPoses(3,i);	
-	testInput = [xPose; yPose; thetaPose];
-	
-	
-	designMatrix = TrainingPoses;
-	designMatrix(:,i) = [];
-	
-	targetMatrix = TrainingObservations;
-	targetMatrix(i,:) = [];
-	
-	xBeams = [];
-	yBeams = [];
-	
+    xPose = TrainingPoses(1,i);
+    yPose = TrainingPoses(2,i);
+    thetaPose = TrainingPoses(3,i);	
+    testInput = [xPose; yPose; thetaPose];
 
-	[predictive_mean, predictive_variance, failcode] = dependentGPPredict(designMatrix, ...
-																		  targetMatrix, ... 
-															              gp_hyperparams, ...
-																		  testInput);
-	predictedObservations = predictive_mean;
-		
-	for observation_id = 1:size(TrainingObservations,2)		
-		[x_impact(1,observation_id), y_impact(1,observation_id)] = FrameSensorToInertial(xPose, ...
-																					     yPose, ...
-																					     thetaPose, ...
-																					     observationAngles(observation_id,1),... 
-																					     predictedObservations(observation_id,1), 1);
 
-		xBeams = [xBeams, xPose, x_impact(1,observation_id)];
-		yBeams = [yBeams, yPose, y_impact(1,observation_id)];	
+    designMatrix = TrainingPoses;
+    designMatrix(:,i) = [];
 
-	end
-	
-	if (count == 1) 						
-		hBeams = plot(xBeams, yBeams, '-r');
-		hImpact = plot(x_impact, y_impact, '.r');
-	else
-		set(hImpact, 'XData', x_impact);
-		set(hImpact, 'YData', y_impact);
-		set(hBeams, 'XData', xBeams); 
-		set(hBeams, 'YData', yBeams);
-	end
+    targetMatrix = TrainingObservations;
+    targetMatrix(i,:) = [];
 
-	drawnow;
-		
-	pause;   
+    xBeams = [];
+    yBeams = [];
+
+
+    [predictive_mean, predictive_variance, failcode] = dependentGPPredict(designMatrix, ...
+                                                                            targetMatrix, ... 
+                                                                            gp_hyperparams, ...
+                                                                            testInput);
+    predictedObservations = predictive_mean;
+        
+    for observation_id = 1:size(TrainingObservations,2)		
+        [x_impact(1,observation_id), y_impact(1,observation_id)] = FrameSensorToInertial(xPose, ...
+                                                                                            yPose, ...
+                                                                                            thetaPose, ...
+                                                                                            observationAngles(observation_id,1),... 
+                                                                                            predictedObservations(observation_id,1), 1);
+
+        xBeams = [xBeams, xPose, x_impact(1,observation_id)];
+        yBeams = [yBeams, yPose, y_impact(1,observation_id)];	
+
+    end
+
+    if (count == 1)
+        hBeams = plot(xBeams, yBeams, '-r');
+        hImpact = plot(x_impact, y_impact, '.r');
+    else
+        set(hImpact, 'XData', x_impact);
+        set(hImpact, 'YData', y_impact);
+        set(hBeams, 'XData', xBeams); 
+        set(hBeams, 'YData', yBeams);
+    end
+
+    drawnow;
+        
+    pause;   
     
     hold off;
      
-	count = count + 1;
+    count = count + 1;
 end
 
 
@@ -182,5 +182,3 @@ function [x_InertialFrame, y_InertialFrame] = FrameSensorToInertial(xS, yS, thet
     x_InertialFrame = x_rotated + xS;
     y_InertialFrame = y_rotated + yS;   
 end
-
-
